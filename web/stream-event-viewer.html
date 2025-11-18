@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebFlux Event Stream Viewer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 0 20px;
+            background-color: #f5f5f5;
+        }
+        .stream-item {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 6px;
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            animation: fadeIn 0.5s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .stream-item:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        .timestamp {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+        .data {
+            margin-top: 5px;
+            white-space: pre-wrap;
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        #connectionStatus {
+            padding: 10px;
+            margin-bottom: 20px;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+        }
+        .connected {
+            background-color: #d4edda;
+            color: #155724;
+            border-left: 4px solid #28a745;
+        }
+        .disconnected {
+            background-color: #f8d7da;
+            color: #721c24;
+            border-left: 4px solid #dc3545;
+        }
+        .connecting {
+            background-color: #fff3cd;
+            color: #856404;
+            border-left: 4px solid #ffc107;
+        }
+        #controls {
+            margin-bottom: 20px;
+            background-color: white;
+            padding: 20px;
+            border-radius: 6px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        button {
+            padding: 8px 16px;
+            margin-right: 10px;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
+        }
+        .btn-danger {
+            background-color: #dc3545;
+            color: white;
+        }
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+        button:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+        #urlInput {
+            padding: 8px;
+            width: 300px;
+            margin-right: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            transition: border-color 0.3s ease;
+        }
+        #urlInput:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+        .stats {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 10px;
+        }
+        #autoScroll {
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+<h1>WebFlux Event Stream Viewer</h1>
+
+<div id="controls">
+    <input type="text" id="urlInput" placeholder="URL del stream (http://localhost:8080/...)">
+    <button onclick="startEventSource()" class="btn-primary">Conectar</button>
+    <button onclick="stopEventSource()" class="btn-danger">Desconectar</button>
+    <button onclick="clearItems()" class="btn-secondary">Limpiar</button>
+    <div>
+        <input type="checkbox" id="autoScroll" checked>
+        <label for="autoScroll">Auto-scroll</label>
+    </div>
+    <div class="stats">
+        Eventos recibidos: <span id="eventCount">0</span>
+        | Última actualización: <span id="lastUpdate">-</span>
+    </div>
+</div>
+
+<div id="connectionStatus" class="disconnected">
+    Estado: Desconectado
+</div>
+
+<div id="streamContainer"></div>
+
+<script>
+    let eventSource = null;
+    let eventCount = 0;
+    let reconnectAttempts = 0;
+    const maxReconnectAttempts = 5;
+    const reconnectDelay = 2000;
+    const processedOrderIds = new Set();
+
+    function updateConnectionStatus(status, message = '') {
+        const statusDiv = document.getElementById('connectionStatus');
+        const statusMap = {
+            'connected': { class: 'connected', text: 'Conectado' },
+            'disconnected': { class: 'disconnected', text: 'Desconectado' },
+            'connecting': { class: 'connecting', text: 'Conectando' }
+        };
+
+        const statusInfo = statusMap[status];
+        statusDiv.className = statusInfo.class;
+        statusDiv.textContent = `Estado: ${statusInfo.text}${message ? ' - ' + message : ''}`;
+    }
+
+    function updateStats() {
+        document.getElementById('eventCount').textContent = eventCount;
+        document.getElementById('lastUpdate').textContent = moment().format('HH:mm:ss');
+    }
+
+    function addStreamItem(data) {
+        const container = document.getElementById('streamContainer');
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'stream-item';
+
+        const timestamp = document.createElement('div');
+        timestamp.className = 'timestamp';
+        timestamp.textContent = moment().format('HH:mm:ss.SSS');
+
+        const dataDiv = document.createElement('div');
+        dataDiv.className = 'data';
+        dataDiv.textContent = typeof data === 'object' ? JSON.stringify(data, null, 2) : data;
+
+        itemDiv.appendChild(timestamp);
+        itemDiv.appendChild(dataDiv);
+        container.insertBefore(itemDiv, container.firstChild);
+
+        eventCount++;
+        updateStats();
+
+        if (document.getElementById('autoScroll').checked) {
+            window.scrollTo(0, 0);
+        }
+    }
+
+    function clearItems() {
+        document.getElementById('streamContainer').innerHTML = '';
+        eventCount = 0;
+        processedOrderIds.clear();
+        updateStats();
+    }
+
+    function stopEventSource() {
+        if (eventSource) {
+            eventSource.close();
+            eventSource = null;
+            updateConnectionStatus('disconnected');
+            reconnectAttempts = 0;
+        }
+    }
+
+    function startEventSource() {
+        stopEventSource();
+
+        const url = document.getElementById('urlInput').value;
+        if (!url) {
+            alert('Por favor, ingresa una URL');
+            return;
+        }
+
+        try {
+            updateConnectionStatus('connecting');
+
+            eventSource = new EventSource(url);
+
+            eventSource.onopen = function() {
+                updateConnectionStatus('connected');
+                reconnectAttempts = 0;
+            };
+
+            eventSource.onmessage = function(event) {
+                try {
+                    const data = JSON.parse(event.data);
+
+                    if (!processedOrderIds.has(data.idProduct)) {
+                        addStreamItem(data);
+                        processedOrderIds.add(data.idProduct);
+                    }
+                } catch (e) {
+                    addStreamItem(event.data);
+                }
+            };
+
+            eventSource.onerror = function(error) {
+                if (eventSource.readyState === EventSource.CLOSED) {
+                    handleDisconnect();
+                } else {
+                    updateConnectionStatus('connecting', 'Reconectando...');
+                }
+            };
+
+        } catch (error) {
+            updateConnectionStatus('disconnected', error.message);
+            console.error('Error al crear EventSource:', error);
+        }
+    }
+
+    function handleDisconnect() {
+        updateConnectionStatus('disconnected');
+
+        if (reconnectAttempts < maxReconnectAttempts) {
+            reconnectAttempts++;
+            updateConnectionStatus('connecting',
+                `Reintentando (${reconnectAttempts}/${maxReconnectAttempts})...`);
+
+            setTimeout(() => {
+                if (eventSource.readyState === EventSource.CLOSED) {
+                    startEventSource();
+                }
+            }, reconnectDelay);
+        } else {
+            updateConnectionStatus('disconnected', 'Máximo de intentos alcanzado');
+        }
+    }
+
+    // Limpiar al cerrar la ventana
+    window.onbeforeunload = function() {
+        stopEventSource();
+    };
+</script>
+</body>
+</html>

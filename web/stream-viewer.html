@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebFlux Stream Viewer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 0 20px;
+        }
+        .stream-item {
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+        }
+        .timestamp {
+            color: #666;
+            font-size: 0.9em;
+        }
+        .data {
+            margin-top: 5px;
+            white-space: pre-wrap;
+        }
+        #connectionStatus {
+            padding: 10px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        .connected {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .disconnected {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        #controls {
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 8px 16px;
+            margin-right: 10px;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #urlInput {
+            padding: 8px;
+            width: 300px;
+            margin-right: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>WebFlux Stream Viewer</h1>
+    
+    <div id="controls">
+        <input type="text" id="urlInput" placeholder="URL del stream (http://localhost:8080/...)">
+        <button onclick="startStream()">Iniciar Stream</button>
+        <button onclick="stopStream()">Detener Stream</button>
+        <button onclick="clearItems()">Limpiar</button>
+    </div>
+
+    <div id="connectionStatus" class="disconnected">
+        Estado: Desconectado
+    </div>
+
+    <div id="streamContainer"></div>
+
+    <script>
+        let controller = null;
+
+        function updateConnectionStatus(connected) {
+            const statusDiv = document.getElementById('connectionStatus');
+            statusDiv.className = connected ? 'connected' : 'disconnected';
+            statusDiv.textContent = `Estado: ${connected ? 'Conectado' : 'Desconectado'}`;
+        }
+
+        function addStreamItem(data) {
+            const container = document.getElementById('streamContainer');
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'stream-item';
+            
+            const timestamp = document.createElement('div');
+            timestamp.className = 'timestamp';
+            timestamp.textContent = moment().format('HH:mm:ss.SSS');
+            
+            const dataDiv = document.createElement('div');
+            dataDiv.className = 'data';
+            dataDiv.textContent = JSON.stringify(data, null, 2);
+            
+            itemDiv.appendChild(timestamp);
+            itemDiv.appendChild(dataDiv);
+            container.insertBefore(itemDiv, container.firstChild);
+        }
+
+        function clearItems() {
+            document.getElementById('streamContainer').innerHTML = '';
+        }
+
+        function stopStream() {
+            if (controller) {
+                controller.abort();
+                controller = null;
+                updateConnectionStatus(false);
+            }
+        }
+
+        async function startStream() {
+            stopStream();
+            
+            const url = document.getElementById('urlInput').value;
+            if (!url) {
+                alert('Por favor, ingresa una URL');
+                return;
+            }
+
+            controller = new AbortController();
+            
+            try {
+                updateConnectionStatus(true);
+                
+                const response = await fetch(url, {
+                    signal: controller.signal,
+                    headers: {
+                        'Accept': 'application/stream+json'
+                    }
+                });
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    
+                    if (done) {
+                        updateConnectionStatus(false);
+                        break;
+                    }
+
+                    buffer += decoder.decode(value, { stream: true });
+                    
+                    // Procesar el buffer línea por línea
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop(); // Guardar la última línea incompleta
+
+                    for (const line of lines) {
+                        if (line.trim()) {
+                            try {
+                                const data = JSON.parse(line);
+                                addStreamItem(data);
+                            } catch (e) {
+                                console.warn('Error parsing JSON:', line);
+                            }
+                        }
+                    }
+                }
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    console.log('Stream detenido por el usuario');
+                } else {
+                    console.error('Error en el stream:', error);
+                    alert('Error al conectar con el stream: ' + error.message);
+                }
+                updateConnectionStatus(false);
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+services:
+  mysql:
+    image: mysql:latest
+    container_name: mysql-g1-noviembre
+    ports:
+      - "3306:3306"
+    network_mode: bridge
+    environment:
+      MYSQL_ROOT_PASSWORD: 123456789
+    volumes:
+      - ./db-scripts/mysql-init.sql:/docker-entrypoint-initdb.d/mysql-init.sql

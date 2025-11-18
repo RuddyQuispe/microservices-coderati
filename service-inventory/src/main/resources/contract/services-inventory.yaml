@@ -1,0 +1,147 @@
+openapi: 3.0.1
+info:
+  title: Servicio de Inventario
+  description: API de gestión de inventarios asociados a ordenes en un sistema de Ecomerce
+  version: 1.0.0
+servers:
+  - url: /services-inventory
+    description: Inventario relacionado a ordenes
+tags:
+  - name: Inventory
+    description: Inventario relacionado a ordenes
+paths:
+  /inventories:
+    get:
+      tags:
+        - Inventory
+      summary: Listar todos los inventarios
+      operationId: listInventory
+      responses:
+        '200':
+          description: Lista de inventarios
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/InventoryResponse'
+            application/stream+json:
+              schema:
+                $ref: '#/components/schemas/InventoryResponse'
+            text/event-stream:
+              schema:
+                $ref: '#/components/schemas/InventoryResponse'
+    post:
+      tags:
+        - Inventory
+      summary: Registrar el inventario para una nueva orden
+      operationId: registerInventory
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InventoryRequest'
+      responses:
+        '201':
+          description: Inventario registrado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryResponse'
+
+  /inventories/{productId}:
+    get:
+      tags:
+        - Inventory
+      summary: Obtener el inventario de un producto en especifico
+      operationId: getInventory
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Detalles del inventario del producto
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryResponse'
+        '404':
+          description: Inventario no encontrado
+
+    put:
+      tags:
+        - Inventory
+      summary: Actualizar el inventario de una orden
+      operationId: updateInventory
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderInvRequest'
+      responses:
+        '200':
+          description: Inventario actualizado exitosamente
+        '404':
+          description: Inventario no encontrado
+components:
+  schemas:
+    InventoryRequest:
+      type: object
+      required:
+        - idProduct
+        - nameProduct
+        - price
+        - stock
+      properties:
+        idProduct:
+          type: string
+          example: "AC-1550"
+        nameProduct:
+          type: string
+          example: "Lentes"
+        price:
+          type: number
+          example: 123.50
+        stock:
+          type: integer
+          example: 50
+          minimum: 1
+          maximum: 500
+    InventoryResponse:
+      type: object
+      required:
+        - idProduct
+        - nameProduct
+        - stock
+      properties:
+        idProduct:
+          type: string
+          example: "AC-1550"
+        nameProduct:
+          type: string
+          example: "Lentes"
+        stock:
+          type: integer
+          example: 50
+          minimum: 0
+          maximum: 500
+    OrderInvRequest:
+      type: object
+      required:
+        - orderCount
+      properties:
+        orderCount:
+          type: integer
+          minimum: 1
+          maximum: 5

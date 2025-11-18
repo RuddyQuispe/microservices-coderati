@@ -1,0 +1,18 @@
+CREATE DATABASE inventory;
+
+USE inventory;
+
+CREATE TABLE products (
+  id INT NOT NULL,
+  code VARCHAR(50) NOT NULL,
+  nameProduct VARCHAR(200) NOT NULL,
+  stock INT NOT NULL,
+  price DECIMAL(10,2) NOT NULL,
+  CONSTRAINT pk_products PRIMARY KEY (id)
+)
+ENGINE=InnoDB
+DEFAULT CHARSET=utf8mb4
+COLLATE=utf8mb4_0900_ai_ci;
+
+ALTER TABLE products MODIFY COLUMN id INT auto_increment NOT NULL;
+ALTER TABLE products MODIFY COLUMN code VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci UNIQUE NOT NULL;
