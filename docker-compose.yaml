@@ -9,3 +9,14 @@ services:
       MYSQL_ROOT_PASSWORD: 123456789
     volumes:
       - ./db-scripts/mysql-init.sql:/docker-entrypoint-initdb.d/mysql-init.sql
+  postgres:
+    image: postgres:latest
+    container_name: postgres-g1-noviembre
+    ports:
+      - "5432:5432"
+    network_mode: bridge
+    shm_size: 123mb
+    environment:
+      POSTGRES_PASSWORD: 123456789
+    volumes:
+      - ./db-scripts/postgres-init.sql:/docker-entrypoint-initdb.d/postgres-init.sql

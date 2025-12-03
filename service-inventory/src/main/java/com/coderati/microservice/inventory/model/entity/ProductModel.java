@@ -7,6 +7,8 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
 
+import java.math.BigDecimal;
+
 @Getter
 @Setter
 @Builder
@@ -18,6 +20,6 @@ public class ProductModel {
     @Column("nameProduct")
     private String nameProduct;
     private Integer stock;
-    private Double price;
+    private BigDecimal price;
 
 }

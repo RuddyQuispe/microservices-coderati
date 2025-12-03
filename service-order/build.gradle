@@ -1,0 +1,132 @@
+buildscript {
+    repositories {
+        mavenLocal()
+        mavenCentral()
+    }
+}
+
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.5.8'
+    id 'io.spring.dependency-management' version '1.1.7'
+    id "org.openapi.generator" version "7.17.0"
+}
+
+group = 'com.coderati.microservice.order'
+version = '0.0.1-SNAPSHOT'
+description = 'Demo project for Spring Boot'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+springBoot {
+    mainClass = "com.coderati.microservice.order.ServiceOrderApplication"
+}
+
+
+sourceSets {
+    main {
+        java {
+            srcDirs += file("${layout.buildDirectory.get()}/generated-sources/openapi/src/main/java")
+//            exclude '**/OpenApiGeneratorApplication.java'
+        }
+    }
+}
+
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+tasks.register("generateMicroOrderServer", org.openapitools.generator.gradle.plugin.tasks.GenerateTask) {
+    generatorName.set("spring")
+    inputSpec.set("$projectDir/src/main/resources/contract/services-order.yaml")
+    outputDir.set("${layout.buildDirectory.get()}/generated-sources/openapi/micro-order-v1-server")
+    apiPackage.set("${project.group}.api")
+    modelPackage.set("${project.group}.dto")
+    configOptions.set([
+            useSpringBoot3   : "true",
+            reactive         : "true",
+            useTags          : "true",
+            useResponseEntity: "false",
+            delegatePattern  : "true",
+            serializableModel: "true",
+    ])
+}
+
+tasks.register("generateMicroInventoryClient", org.openapitools.generator.gradle.plugin.tasks.GenerateTask) {
+    generatorName.set("java")
+    inputSpec.set("$projectDir/src/main/resources/contract/services-inventory.yaml")
+    outputDir.set("${layout.buildDirectory.get()}/generated-sources/openapi/micro-inventory-v1-client")
+    apiPackage.set("${project.group}.proxy.api")
+    modelPackage.set("${project.group}.proxy.model")
+    generateApiDocumentation.set(false)
+    generateModelDocumentation.set(false)
+    generateApiTests.set(false)
+    generateModelTests.set(false)
+    configOptions.set([
+            library       : "webclient",
+            useJakartaEe  : "true",
+            useHttpHeaders: "false"
+    ])
+}
+
+tasks.named("compileJava") {
+    dependsOn("generateMicroOrderServer", "generateMicroInventoryClient")
+}
+
+sourceSets.main.java.srcDir("${layout.buildDirectory.get()}/generated-sources/openapi/micro-order-v1-server/src/main/java")
+sourceSets.main.java.srcDir("${layout.buildDirectory.get()}/generated-sources/openapi/micro-inventory-v1-client/src/main/java")
+
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'org.springframework.boot:spring-boot-starter-data-r2dbc'
+    implementation 'org.liquibase:liquibase-core'
+    implementation 'org.springframework.boot:spring-boot-starter-webflux'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework:spring-jdbc'
+    runtimeOnly 'org.postgresql:postgresql'
+    runtimeOnly 'org.postgresql:r2dbc-postgresql'
+    testImplementation 'org.springframework.boot:spring-boot-starter-actuator-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-data-r2dbc-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-liquibase-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-webflux-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+    // --- Importación del BOM de Spring Cloud (Equivalente al dependencyManagement de Maven) ---
+    implementation platform('org.springframework.cloud:spring-cloud-dependencies:2025.0.0')
+    // https://mvnrepository.com/artifact/org.springframework.cloud/spring-cloud-starter-circuitbreaker-reactor-resilience4j
+    implementation 'org.springframework.cloud:spring-cloud-starter-circuitbreaker-reactor-resilience4j'
+
+    // Dependencias para OpenAPI Generator
+    implementation 'io.swagger.core.v3:swagger-annotations:2.2.29'
+    implementation 'org.openapitools:jackson-databind-nullable:0.2.8'
+    implementation 'jakarta.validation:jakarta.validation-api'
+    implementation 'jakarta.annotation:jakarta.annotation-api'
+
+    // Soporte para JavaTime (LocalDate, LocalDateTime, etc.)
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.17.2'
+
+    // MapStruct
+    implementation 'org.mapstruct:mapstruct:1.6.3'
+    annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.3'
+
+    // Lombok
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok-mapstruct-binding:0.2.0'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}

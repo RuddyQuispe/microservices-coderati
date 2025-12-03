@@ -1,0 +1,19 @@
+databaseChangeLog:
+  - changeSet:
+      id: 1
+      author: Ruddy Quispe
+      context: stable
+      changes:
+        - sql:
+            sql: |
+              IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'order_shop')
+                CREATE SCHEMA order_shop
+  - changeSet:
+      id: 2
+      author: Ruddy Quispe
+      context: stable
+      changes: test
+        - sql:
+            sql: |
+              IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'order_shop_test')
+                CREATE SCHEMA order_shop_test

@@ -1,0 +1,65 @@
+spring:
+  r2dbc:
+    url: r2dbc:postgresql://localhost:5432/orderdb
+    username: postgres
+    password: 123456789
+  # configuracion liquid base ya no es necesario si usas jdbc y no r2dbc
+  liquibase:
+    enabled: true
+    change-log: classpath:db/changelog/master.yaml
+    drop-first: false # eliminar la tablas antes de aplicar los cambios
+    url: jdbc:postgresql://localhost:5432/orderdb
+    driver-class-name: org.postgresql.Driver
+    user: postgres
+    password: 123456789
+    # contexts: local
+
+client-micro:
+  micro-order:
+    base-url: http://localhost:8081/services-inventory
+
+resilience4j:
+  #1
+  retry:
+    configs:
+      default:
+        maxAttempts: 4 # maximo numero de retry atttempts
+        maxDuration: 3s # wait duration between attempts
+    instances:
+      microInventory:
+        baseConfig: default
+  #2
+  circuitbreaker:
+    configs:
+      default:
+        slidingWindowSize: 5 # cantidad de llamadas que va a evaluar el ratio de fallos
+        failureRateThreshold: 50 # se evalua en % dependendiendo de este ratio
+        permittedNumberOfCallsInHalfOpenState: 3 # necesitamos indicar la cantidad de llmadas de prueba (si llama 3 veces y estan correctas, estará abierta, caso contrario seguira protegida)
+        waitDurationInOpenState: 10s # eavlua el tiempo opara pasar de estado de prueba
+        registerHealthIndicator: true
+    instances:
+      microInventory:
+        baseConfig: default
+  #      microPagos:
+  #        baseConfig: default
+  #3
+  rateLimiter:
+    configs:
+      default:
+        limitForPeriod: 10 # Maximum number of calls allowed in a period
+        limitRefreshPeriod: 60s # Time period for the rate limiter
+        timeoutDuration: 1s # Timeout for acquiring a permit
+        registerHealthIndicator: true # Register a health indicator for the rate limiter
+    instances:
+      microInventory:
+        baseConfig: default
+  #4
+  timeLimiter:
+    configs:
+      default:
+        timeoutDuration: 1s # Maximum time to wait for a response
+        cancelRunningFuture: true # Cancel the running future if the timeout is reached
+        registerHealthIndicator: true # Register a health indicator for the time limiter
+    instances:
+      microInventory:
+        baseConfig: default

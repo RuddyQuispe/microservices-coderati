@@ -1,0 +1,32 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-database-order-DES-001-2025-11-15
+      author: Ruddy Quispe
+      #context: local, desa, qa, prod  -- default
+      changes:
+        - createTable:
+            tableName: order_shop
+            #schemaName: sch_shop
+            columns:
+              - column:
+                  name: id
+                  type: INT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: code_product
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: date_order
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status_order
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false

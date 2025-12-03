@@ -1,0 +1,29 @@
+spring:
+  application:
+    name: service-order
+  profiles:
+    active: 'local'
+
+management:
+  endpoints:
+    web:
+      base-path: /services-order/actuator
+      exposure:
+        include: '*'
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+#  health:
+#    livenesstate:
+#      enabled: true
+#    readinessstate:
+#      enabled: true
+
+server:
+  port: 8082
+
+micro:
+  inventory:
+    url: http://localhost:8081/services-inventory

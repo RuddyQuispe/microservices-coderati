@@ -17,47 +17,49 @@ import reactor.core.publisher.Mono;
 public class InventoryServiceImpl implements InventoryService {
 
     private final InventoryRepository inventoryRepository;
-    private final InventoryMapper inventoryMapper;
 
     @Override
     public Mono<InventoryResponse> createInventory(Mono<InventoryRequest> inventory) {
         return inventory.map(InventoryMapper.INSTANCE::requestToModel)
-                .flatMap(product ->
-                        this.inventoryRepository.existsByCode(product.getCode())
-                                .flatMap(exists -> {
-                                    if (exists)
-                                        return Mono.empty();
-                                    return this.inventoryRepository.save(product);
-                                })
-                )
-                .doOnSubscribe(p -> log.info("Creating inventory {}", inventory))
-                .doOnSuccess(p -> log.info("Inventory created {}", inventory))
-                .map(this.inventoryMapper::modelToResponse);
+                .flatMap(value -> inventoryRepository.existsByCode(value.getCode())
+                        .flatMap(y -> {
+                            if (y) {
+                                return Mono.empty();
+                            }
+                            return inventoryRepository.save(value);
+                        })
+                ).map(InventoryMapper.INSTANCE::modelToResponse)
+                .doOnSubscribe(p -> log.info("Creating inventory..."))
+                .doOnSuccess(p -> log.info("Inventory created successfully."))
+                .doOnError(ex -> log.error("Error creating inventory: {}", ex.getMessage()));
     }
 
     @Override
     public Mono<InventoryResponse> updateInventory(Mono<InventoryRequest> inventory) {
         return inventory.map(InventoryMapper.INSTANCE::requestToModel)
-                .flatMap(product ->
-                        this.inventoryRepository.existsByCode(product.getCode())
-                                .flatMap(exists -> {
-                                    if (exists)
-                                        return this.inventoryRepository.save(product);
-                                    return Mono.empty();
-                                })
-                )
-                .doOnSubscribe(p -> log.info("Creating inventory {}", inventory))
-                .doOnSuccess(p -> log.info("Inventory created {}", inventory))
-                .map(this.inventoryMapper::modelToResponse);
-    }
-
-    @Override
-    public Flux<InventoryResponse> getAllInventories() {
-        return this.inventoryRepository.findAll().map(this.inventoryMapper::modelToResponse);
+                .flatMap(value -> inventoryRepository.existsByCode(value.getCode())
+                        .flatMap(y -> {
+                            if (y) {
+                                return Mono.empty();
+                            }
+                            return inventoryRepository.save(value);
+                        })
+                ).map(InventoryMapper.INSTANCE::modelToResponse)
+                .doOnSubscribe(p -> log.info("Updating inventory..."))
+                .doOnSuccess(p -> log.info("Inventory updated successfully."))
+                .doOnError(ex -> log.error("Error updating inventory: {}", ex.getMessage()));
     }
 
     @Override
     public Mono<InventoryResponse> getInventory(String code) {
-        return this.inventoryRepository.findByCode(code).map(this.inventoryMapper::modelToResponse);
+        return inventoryRepository.findByCode(code)
+                .map(InventoryMapper.INSTANCE::modelToResponse);
+    }
+
+    @Override
+    public Flux<InventoryResponse> getAllInventories() {
+        return inventoryRepository.findAll()
+                .map(InventoryMapper.INSTANCE::modelToResponse)
+                .doOnComplete(() -> log.info("Fetched all inventory items."));
     }
 }

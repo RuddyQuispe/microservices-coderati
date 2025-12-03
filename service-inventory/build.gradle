@@ -4,10 +4,11 @@ buildscript {
         mavenCentral()
     }
 }
+
 plugins {
-	id 'java'
-	id 'org.springframework.boot' version '3.5.7'
-	id 'io.spring.dependency-management' version '1.1.7'
+    id 'java'
+    id 'org.springframework.boot' version '3.5.7'
+    id 'io.spring.dependency-management' version '1.1.7'
     id "org.openapi.generator" version "7.15.0"
 }
 
@@ -16,13 +17,13 @@ version = '0.0.1-SNAPSHOT'
 description = 'Inventario relacionado a ordenes'
 
 java {
-	toolchain {
-		languageVersion = JavaLanguageVersion.of(21)
-	}
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
 }
 
 springBoot {
-	mainClass = 'com.coderati.microservice.inventory.ServiceInventoryApplication'
+    mainClass = 'com.coderati.microservice.inventory.ServiceInventoryApplication'
 }
 
 sourceSets {
@@ -34,13 +35,13 @@ sourceSets {
 }
 
 configurations {
-	compileOnly {
-		extendsFrom annotationProcessor
-	}
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
 }
 
 repositories {
-	mavenCentral()
+    mavenCentral()
 }
 
 openApiGenerate {
@@ -54,11 +55,11 @@ openApiGenerate {
 
     // Configuración equivalente al Maven plugin
     configOptions.set([
-            useSpringBoot3: "true",
-            reactive: "true",
-            useTags: "true",
+            useSpringBoot3   : "true",
+            reactive         : "true",
+            useTags          : "true",
             useResponseEntity: "false",
-            delegatePattern: "true",
+            delegatePattern  : "true",
             serializableModel: "true",
     ])
 }
@@ -68,37 +69,37 @@ tasks.named("compileJava") {
 }
 
 dependencies {
-	implementation 'org.springframework.boot:spring-boot-starter-data-r2dbc'
-	implementation 'org.springframework.boot:spring-boot-starter-webflux'
-	implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-data-r2dbc'
+    implementation 'org.springframework.boot:spring-boot-starter-webflux'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
 
-	// OpenAPI/Swagger para WebFlux
-	implementation 'org.springdoc:springdoc-openapi-starter-webflux-ui:2.8.4'
+    // OpenAPI/Swagger para WebFlux
+    implementation 'org.springdoc:springdoc-openapi-starter-webflux-ui:2.8.4'
 
-	// Dependencias para OpenAPI Generator
-	implementation 'io.swagger.core.v3:swagger-annotations:2.2.29'
-	implementation 'org.openapitools:jackson-databind-nullable:0.2.8'
-	implementation 'jakarta.validation:jakarta.validation-api'
-	implementation 'jakarta.annotation:jakarta.annotation-api'
+    // Dependencias para OpenAPI Generator
+    implementation 'io.swagger.core.v3:swagger-annotations:2.2.29'
+    implementation 'org.openapitools:jackson-databind-nullable:0.2.8'
+    implementation 'jakarta.validation:jakarta.validation-api'
+    implementation 'jakarta.annotation:jakarta.annotation-api'
 
-	// MapStruct
-	implementation 'org.mapstruct:mapstruct:1.6.3'
-	annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.3'
+    // Lombok
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok-mapstruct-binding:0.2.0'
 
-	// Lombok
-	compileOnly 'org.projectlombok:lombok'
-	annotationProcessor 'org.projectlombok:lombok'
-	annotationProcessor 'org.projectlombok:lombok-mapstruct-binding:0.2.0'
+    // MapStruct
+    implementation 'org.mapstruct:mapstruct:1.6.3'
+    annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.3'
 
-	// R2DBC MySQL
-	implementation 'io.asyncer:r2dbc-mysql:1.4.1'
+    // R2DBC MySQL
+    implementation 'io.asyncer:r2dbc-mysql:1.4.1'
 
-	// Testing
-	testImplementation 'org.springframework.boot:spring-boot-starter-test'
-	testImplementation 'io.projectreactor:reactor-test'
-	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    // Testing
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'io.projectreactor:reactor-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
 tasks.named('test') {
-	useJUnitPlatform()
+    useJUnitPlatform()
 }

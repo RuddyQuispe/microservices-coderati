@@ -1,0 +1,133 @@
+openapi: 3.0.1
+info:
+  title: Servicio de Órdenes
+  description: API para gestionar órdenes en un sistema de comercio.
+  version: 1.0.0
+
+servers:
+  - url: /services-order
+    description: Url endpoint del servicio de órdenes
+
+tags:
+  - name: Ordenes
+    description: Operaciones relacionadas con las órdenes
+
+paths:
+  /orders:
+    get:
+      tags:
+        - Ordenes
+      summary: Listar todas las órdenes
+      operationId: listOrders
+      responses:
+        '200':
+          description: Lista de órdenes recuperada exitosamente
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OrderResponse'
+            application/stream+json:
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
+            text/event-stream:
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
+        '500':
+          description: Error en el servidor
+    post:
+      tags:
+        - Ordenes
+      summary: Registrar una nueva orden
+      operationId: createOrder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderRequest'
+      responses:
+        '201':
+          description: Orden registrada exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
+        '400':
+          description: Solicitud inválida
+        '500':
+          description: Error en el servidor
+
+  /orders/{orderId}:
+    get:
+      tags:
+        - Ordenes
+      summary: Obtener una orden específica
+      operationId: getOrder
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          description: ID de la orden a obtener
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Detalles de la orden recuperados exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
+        '404':
+          description: Orden no encontrada
+        '500':
+          description: Error en el servidor
+    put:
+      tags:
+        - Ordenes
+      summary: Actualizar una orden
+      operationId: updateOrder
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          description: ID de la orden a actualizar
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Orden actualizada exitosamente
+        '404':
+          description: Orden no encontrada
+        '500':
+          description: Error en el servidor
+components:
+  schemas:
+    OrderRequest:
+      type: object
+      required:
+        - codeProduct
+      properties:
+        codeProduct:
+          type: string
+          example: "CD-001"
+    OrderResponse:
+      type: object
+      required:
+        - idOrder
+        - statusOrder
+      properties:
+        id:
+          type: integer
+          example: '12345'
+        status:
+          type: string
+          enum:
+            - pending
+            - completed
+            - canceled
+          example: 'pending'
+        createdAt:
+          type: string
+          example: '2024-09-12T12:00:00Z'
